@@ -1,4 +1,5 @@
 #include <inttypes.h>
+#include <random>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -24,7 +25,6 @@ typedef struct Linked_List{
     Node* head_node;
 } Linked_List;
 
-Linked_List list;
 
 void init_list(Linked_List* list){
     list->head_node = (Node*)malloc(sizeof(Node));
@@ -32,6 +32,43 @@ void init_list(Linked_List* list){
     list->head_node->val = NULL;
     list->head_node->type = NONE;
     list->size = 0;
+}
+
+Linked_List to_LL(int size, value_type* types, void** vals){
+    Linked_List result;
+    int i;
+    init_list(&result);
+    Node* current = result.head_node;
+    Node* new_node = (Node*)malloc(sizeof(Node));
+    for(i = 0;i < size;i++){
+        new_node->next = NULL;
+        switch (types[i]){
+            case TYPE_INT:
+                new_node->type = TYPE_INT;
+                *(int*)new_node->val = *(int*)vals[i];
+                break;
+            case TYPE_FLOAT:
+                new_node->type = TYPE_FLOAT;
+                *(float*)new_node->val = *(float*)vals[i];
+                break;
+            case TYPE_CHAR:
+                new_node->type = TYPE_CHAR;
+                *(char*)new_node->val = *(char*)vals[i];
+                break;
+            case TYPE_STRING:
+                new_node->type = TYPE_STRING;
+                new_node->val = (char*)vals[i];
+                break;
+            default:
+                new_node->type = NONE;
+                new_node->val = NULL;
+                printf("TYPE ERROR: INVALID TYPE\n");
+                break;
+        }
+        current->next = new_node;
+        current = current->next;
+    }
+    return result;
 }
 
 void add(Linked_List* list,int index,value_type type, void* value){
@@ -81,10 +118,10 @@ void add(Linked_List* list,int index,value_type type, void* value){
     }
 }
 
-void change(int index, value_type type, void* val){
-    if (list.size > index){
+void change(Linked_List* list,int index, value_type type, void* val){
+    if (list->size > index){
         int i;
-        Node* current = list.head_node->next;
+        Node* current = list->head_node->next;
         for (i = 0; i < index;i++){
             current = current->next;
         }
@@ -96,11 +133,11 @@ void change(int index, value_type type, void* val){
     }
 }
 
-float sum(){
+float sum(Linked_List* list){
     int i;
     float result = 0.0f;
-    Node* current = list.head_node->next;
-    for (i = 0;i < list.size;i++){
+    Node* current = list->head_node->next;
+    for (i = 0;i < list->size;i++){
         if (current->type == TYPE_INT){
             result += *(int*)current->val;
         }else if (current->type == TYPE_FLOAT){
@@ -130,17 +167,17 @@ void pop(Linked_List* list, int index){
     }
 }
 
-void reverse(int left, int right){
+void reverse(Linked_List* list, int left, int right){
     int i;
-    if (list.size > 2){
+    if (list->size > 2){
         Node *current, *after;
         if (left == -1){
             left = 0;
         }
         if (right == -1){
-            right = list.size-1;
+            right = list->size-1;
         }
-        current = list.head_node;
+        current = list->head_node;
         for (i = 0;i < left;i++){
             current = current->next;
         }
@@ -154,21 +191,21 @@ void reverse(int left, int right){
             start->next = after;
             current = after;
         }
-    }else if (list.size == 2){
+    }else if (list->size == 2){
         Node *prev, *current;
-        prev = list.head_node->next;
+        prev = list->head_node->next;
         current = prev->next;
         current->next = prev;
         prev->next = NULL;
-        list.head_node->next = current;
+        list->head_node->next = current;
     }
 }
 
-void print_list(int index){
+void print_list(Linked_List* list, int index){
     int i;
-    Node* current = list.head_node->next;
+    Node* current = list->head_node->next;
     if (index == -1){
-        for (i = 0;i < list.size;i++){
+        for (i = 0;i < list->size;i++){
             switch (current->type){
                 case TYPE_INT:
                     printf("%d -> ",*(int*)current->val);
@@ -188,7 +225,7 @@ void print_list(int index){
             }
             current = current->next;
         }
-    }else if (list.size > index){
+    }else if (list->size > index){
         for(i = 0;i < index;i++){
             current = current->next;
         }
@@ -214,11 +251,11 @@ void print_list(int index){
     }
 }
 
-void free_list(){
+void free_list(Linked_List* list){
     int i;
     Node *current, *after;
-    current = list.head_node;
-    for(i = 0;i < list.size+1;i++){
+    current = list->head_node;
+    for(i = 0;i < list->size+1;i++){
         after = current->next;
         if (current->val != NULL){
             free(current->val);
@@ -228,18 +265,18 @@ void free_list(){
     }
 }
 
-int find(value_type type, void* val){
+int find(Linked_List* list, value_type type, void* val){
     int i;
-    Node* current = list.head_node->next;
+    Node* current = list->head_node->next;
     if (type == TYPE_STRING){
-        for(i = 0;i < list.size;i++){
+        for(i = 0;i < list->size;i++){
             if (strcmp((char*)val, current->val) == 0){
                 return i;
             }
             current = current->next;
         }
     }
-    for(i = 0;i < list.size;i++){
+    for(i = 0;i < list->size;i++){
         if (current->type == type && current->val == val){
             return i;
         }
@@ -297,12 +334,12 @@ Linked_List copy(Linked_List* list){
     return result;
 }
 
-Linked_List filter(value_type type){
+Linked_List filter(Linked_List* list, value_type type){
     Linked_List result;
     init_list(&result);
     int i;
-    Node* current = list.head_node->next;
-    for(i = 0;i < list.size;i++){
+    Node* current = list->head_node->next;
+    for(i = 0;i < list->size;i++){
         if(current->type == type){
             add(&result,-1,type,current->val);
         }
